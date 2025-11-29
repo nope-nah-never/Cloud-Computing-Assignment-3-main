@@ -46,9 +46,9 @@ The architecture is fully deployed and managed using **AWS CloudFormation** and 
 
 ---
 
-## 🧩 **Lambda Functions**
+## **Lambda Functions**
 
-### **1 index-photos (PUT /upload)**
+### **1. index-photos (PUT /upload)**
 
 * Accepts image + optional custom labels
 * Uploads file to S3
@@ -60,7 +60,7 @@ The architecture is fully deployed and managed using **AWS CloudFormation** and 
 
 ---
 
-### **2 search-photos (GET /search?q=...)**
+### **2. search-photos (GET /search?q=...)**
 
 * Sends query to Lex for keyword extraction
 * Falls back to raw text if Lex finds no slots
@@ -114,7 +114,7 @@ Features:
 
 ---
 
-## 📁 **Repository Structure**
+## **Repository Structure**
 
 ```
 Cloud-Computing-Assignment-3-main/
@@ -138,38 +138,38 @@ Cloud-Computing-Assignment-3-main/
 
 ---
 
-## 🚀 **Deployment Summary**
+## **Deployment Summary**
 
-✔ CloudFormation stack created successfully
-✔ API Gateway with Lambda Proxy Integration
-✔ Two Lambda functions deployed
-✔ S3 buckets provisioned
-✔ Bucket public access configured correctly
-✔ OpenSearch Serverless index & policy configured
-✔ Lex bot variables used through Env Vars
-✔ CI/CD pipelines (backend + frontend) fully operational
-✔ Frontend auto-deploys to S3 on every commit
-✔ Entire system tested end-to-end
+* CloudFormation stack created successfully
+* API Gateway with Lambda Proxy Integration
+* Two Lambda functions deployed
+* S3 buckets provisioned
+* Bucket public access configured correctly
+* OpenSearch Serverless index & policy configured
+* Lex bot variables used through Env Vars
+* CI/CD pipelines (backend + frontend) fully operational
+* Frontend auto-deploys to S3 on every commit
+* Entire system tested end-to-end
 
 ---
 
-## 🧪 **Test Scenarios Completed**
+## **Test Scenarios Completed**
 
 ### Upload Path
 
-* JPEG upload ✔
-* PNG upload ✔
-* Custom labels ✔
-* Rekognition auto-labeling ✔
-* OpenSearch indexing ✔
+* JPEG upload
+* PNG upload
+* Custom labels
+* Rekognition auto-labeling
+* OpenSearch indexing
 
 ### Search Path
 
-* Lex extracts slots ✔
-* Fallback to raw search ✔
-* Deduplication ✔
-* Presigned URL generation ✔
-* Correct display in grid ✔
+* Lex extracts slots
+* Fallback to raw search
+* Deduplication
+* Presigned URL generation
+* Correct display in grid
 
 ### Frontend
 
@@ -180,7 +180,7 @@ Cloud-Computing-Assignment-3-main/
 
 ---
 
-## 🏁 **Final Status**
+## **Final Status**
 
 **All functional requirements, architectural requirements, and deployment requirements have been fully implemented.**
 
