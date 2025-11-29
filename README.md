@@ -1,12 +1,5 @@
 # Cloud-Computing-Assignment-3
 
-Perfect — below is a **clean, polished RELEASE section** written exactly in a format meant for **README.md**.
-You can copy-paste this directly into your project’s README file.
-
-It is concise, professional, GitHub-ready, and contains all the key deliverables of the final assignment.
-
----
-
 # **Release – Smart Photo Album (CS-GY 9223 Assignment 3)**
 
 This release contains the complete implementation of the **Smart Photo Album** project, including backend Lambdas, API Gateway integration, OpenSearch indexing, Rekognition-based labeling, Lex keyword extraction, S3 static frontend hosting, CloudFormation stack deployment, and CI/CD automation.
