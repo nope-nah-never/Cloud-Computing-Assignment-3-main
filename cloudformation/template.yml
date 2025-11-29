@@ -1,0 +1,233 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Smart Photo Album - Minimal infrastructure stack:
+  2 S3 buckets (frontend + photos), 2 Lambdas, 1 API Gateway.
+
+Parameters:
+  PhotosBucketName:
+    Type: String
+    Default: photo-storage-bucket-demo
+    Description: S3 bucket name for storing photos
+  FrontendBucketName:
+    Type: String
+    Default: photo-frontend-bucket-demo
+    Description: S3 bucket name for hosting the frontend website
+
+Resources:
+  ########################
+  # S3 BUCKETS
+  ########################
+
+  PhotosBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref PhotosBucketName
+
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref FrontendBucketName
+      WebsiteConfiguration:
+        IndexDocument: index.html
+      PublicAccessBlockConfiguration:      # 👈 add this block
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowPublicRead
+            Effect: Allow
+            Principal: "*"
+            Action: s3:GetObject
+            Resource: !Sub "${FrontendBucket.Arn}/*"
+
+  ########################
+  # IAM ROLE FOR LAMBDAS
+  ########################
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-lambda-execution-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaBasicAndS3
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "arn:aws:logs:*:*:*"
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt PhotosBucket.Arn
+                  - !Sub "${PhotosBucket.Arn}/*"
+
+  ########################
+  # LAMBDA FUNCTIONS
+  ########################
+
+  IndexPhotosFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-index-photos"
+      Runtime: python3.11
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      Environment:
+        Variables:
+          PHOTOS_BUCKET: !Ref PhotosBucket
+      Code:
+        ZipFile: |
+          import os, json
+          import boto3
+
+          s3 = boto3.client("s3")
+          PHOTOS_BUCKET = os.environ.get("PHOTOS_BUCKET", "")
+
+          def lambda_handler(event, context):
+              # Minimal stub: log event and respond OK
+              print("Index Lambda received event:", json.dumps(event))
+              return {
+                  "statusCode": 200,
+                  "headers": {
+                      "Access-Control-Allow-Origin": "*"
+                  },
+                  "body": json.dumps({"message": "Index placeholder"})
+              }
+
+  SearchPhotosFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-search-photos"
+      Runtime: python3.11
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      Environment:
+        Variables:
+          PHOTOS_BUCKET: !Ref PhotosBucket
+      Code:
+        ZipFile: |
+          import json
+
+          def lambda_handler(event, context):
+              print("Search Lambda received event:", json.dumps(event))
+              # Return empty result list with correct shape
+              body = {"results": []}
+              return {
+                  "statusCode": 200,
+                  "headers": {
+                      "Access-Control-Allow-Origin": "*"
+                  },
+                  "body": json.dumps(body)
+              }
+
+  ########################
+  # API GATEWAY
+  ########################
+
+  PhotoApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub "${AWS::StackName}-photo-api"
+
+  ApiResourceSearch:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref PhotoApi
+      ParentId: !GetAtt PhotoApi.RootResourceId
+      PathPart: search
+
+  ApiResourceUpload:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref PhotoApi
+      ParentId: !GetAtt PhotoApi.RootResourceId
+      PathPart: upload
+
+  # GET /search -> SearchPhotosFunction (proxy)
+  SearchGetMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref PhotoApi
+      ResourceId: !Ref ApiResourceSearch
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SearchPhotosFunction.Arn}/invocations"
+
+  # PUT /upload -> IndexPhotosFunction (proxy)
+  UploadPutMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref PhotoApi
+      ResourceId: !Ref ApiResourceUpload
+      HttpMethod: PUT
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${IndexPhotosFunction.Arn}/invocations"
+
+  # Deployment + Stage
+  ApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - SearchGetMethod
+      - UploadPutMethod
+    Properties:
+      RestApiId: !Ref PhotoApi
+      StageName: prod
+
+  ########################
+  # LAMBDA PERMISSIONS
+  ########################
+
+  IndexLambdaPermissionForApi:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref IndexPhotosFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${PhotoApi}/*/PUT/upload"
+
+  SearchLambdaPermissionForApi:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref SearchPhotosFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${PhotoApi}/*/GET/search"
+
+Outputs:
+  FrontendWebsiteURL:
+    Description: Public website URL for the frontend bucket
+    Value: !Sub "http://${FrontendBucket}.s3-website-${AWS::Region}.amazonaws.com"
+
+  ApiInvokeURL:
+    Description: Base invoke URL for the API Gateway
+    Value: !Sub "https://${PhotoApi}.execute-api.${AWS::Region}.amazonaws.com/prod"
