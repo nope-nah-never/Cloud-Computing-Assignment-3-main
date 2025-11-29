@@ -1,6 +1,7 @@
 # Cloud-Computing-Assignment-3
 
 # **Release – Smart Photo Album (CS-GY 9223 Assignment 3)**
+## **By: Milind Kaushal (mk9694) & Sankirth Kalahasti (sk11617)**
 
 This release contains the complete implementation of the **Smart Photo Album** project, including backend Lambdas, API Gateway integration, OpenSearch indexing, Rekognition-based labeling, Lex keyword extraction, S3 static frontend hosting, CloudFormation stack deployment, and CI/CD automation.
 
